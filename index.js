@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 3000;
@@ -34,6 +34,16 @@ async function run() {
       // jobs related apis
     const jobsCollection = client.db('jobportal').collection('jobs');
     const jobApplycationCollection = client.db("jobportal").collection('job_application');
+
+
+    // Auth related APIs
+    app.post('/jwt', async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, 'secret', { expiresIn: '1h' });
+      res.send(token);
+    })
+
+
 
     // job releted APIs
     app.get('/jobs', async (req, res) => {
@@ -71,9 +81,9 @@ async function run() {
 
       // fokira way to aggregate data
       for (const application of result) {
-        console.log(application.job_id);
+        // console.log(application.job_id);
         const query1 = { _id: new ObjectId(application.job_id) };
-        console.log("Query to execute:", query1);
+        // console.log("Query to execute:", query1);
 
         const job = await jobsCollection.findOne(query1);
         if (job) {
@@ -100,14 +110,15 @@ async function run() {
     app.post('/job-applications', async (req, res) => {
       const application = req.body;
       const result = await jobApplycationCollection.insertOne(application);
-
+console.log(result);
       // Not the best way (use aggregate)
       // skip --> it
-
+console.log(application);
       const id = application.job_id;
+     
       const query = { _id: new ObjectId(id) };
       const job = await jobsCollection.findOne(query);
-      console.log(job);
+      // console.log(job);
       let newCount = 0;
       if (job.applicationCount) {
         newCount = job.applicationCount + 1;
