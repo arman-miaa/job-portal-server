@@ -8,10 +8,7 @@ const port = process.env.PORT || 3000;
 require('dotenv').config();
 
 
-// cors({
-//   origin: ["http://localhost:5173"],
-//   credentials: true,
-// });
+
 app.use(
   cors({
     origin: ["http://localhost:5173"],
@@ -22,6 +19,12 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 // const uri = "mongodb://localhost:27017/";
+
+const logger = (req, res, next) => {
+  console.log('inside the logger');
+  next();
+}
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.7argw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -65,7 +68,8 @@ async function run() {
 
 
     // job releted APIs
-    app.get('/jobs', async (req, res) => {
+    app.get('/jobs', logger, async (req, res) => {
+      console.log('now inside the api callback');
       const email = req.query.email;
       let query = {};
       if (email) {
