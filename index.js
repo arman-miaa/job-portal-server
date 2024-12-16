@@ -25,6 +25,21 @@ const logger = (req, res, next) => {
   next();
 }
 
+const verifyToken = (req, res, next) => {
+  console.log('inside verify token middleware', req.cookies);
+  const token = req?.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ message: "Unathorized access 1" });
+  }
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    console.log(err);
+    if (err) {
+      return res.status(401).send({ message: "Unuthorized access 2" });
+    }
+  });
+  next();
+}
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.7argw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -59,8 +74,8 @@ async function run() {
       res
         .cookie("token", token, {
           httpOnly: true,
-          secure: false,
-          sameSite: "none",
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         })
         .send({ success: true });
     })
@@ -68,7 +83,7 @@ async function run() {
 
 
     // job releted APIs
-    app.get('/jobs', logger, async (req, res) => {
+    app.get('/jobs', logger,  async (req, res) => {
       console.log('now inside the api callback');
       const email = req.query.email;
       let query = {};
@@ -97,11 +112,11 @@ async function run() {
     // job application apis
     // get all data, get one, get some data [0,1,many]
 
-    app.get("/job-applications", async (req, res) => {
+    app.get("/job-applications", verifyToken, async (req, res) => {
       const email = req.query.email;
       const query = { applicant_email: email };
-
-      console.log('cuk cuk cookies', req.cookies);
+console.log(query);
+      // console.log("cuk cuk cookies", req.cookies);
 
       const result = await jobApplycationCollection.find(query).toArray();
 
@@ -115,10 +130,9 @@ async function run() {
         if (job) {
           application.title = job.title;
           application.company = job.company;
-          application.company_logo = job.company_logo
+          application.company_logo = job.company_logo;
         }
       }
-
 
       res.send(result);
     });
